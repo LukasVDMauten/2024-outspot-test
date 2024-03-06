@@ -12,5 +12,6 @@ class Order extends Model
     protected $fillable = [
         'amount',
         'status',
+        'mollie_payment_id',
     ];
 }

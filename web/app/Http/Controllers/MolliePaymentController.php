@@ -39,7 +39,8 @@ class MolliePaymentController extends Controller
         ]);
 
         // replace _payment_id_ with the payment id
-        $payment->redirectUrl = str_replace('_payment_id_', $payment->id, $payment->redirectUrl);
+        $order->mollie_payment_id = $payment->id;
+        $order->save();
 
         // Redirect to the payment screen
         return Inertia::location($payment->getCheckoutUrl(), 303);
@@ -48,10 +49,23 @@ class MolliePaymentController extends Controller
     public function paymentSuccess(Request $request)
     {
         // Get the payment id from the request
-        $paymentId = $request->payment_id;
+        $order_id = $request->payment_id;
+
+        // Get the order with the mollie payment id
+        $order = Order::where('mollie_payment_id', $order_id)->first();
+
+        // Check if the order exists
+        if (!$order) {
+            // Handle error: Order not found
+            return Inertia::render('Payment/Success', [
+                'status' => 'error',
+            ]);
+        }
+
+        $payment_id = $order->mollie_payment_id;
 
         // Get the payment
-        $payment = Mollie::api()->payments->get($paymentId);
+        $payment = Mollie::api()->payments->get($payment_id);
 
         // Get the payment status
         $status = $payment->status;
@@ -65,16 +79,16 @@ class MolliePaymentController extends Controller
     public function handleWebhookMollie(Request $request)
     {
         // Get the payment ID
-        $paymentId = $request->input('id');
+        $payment_id = $request->input('id');
 
         // Check if the payment ID is provided
-        if (!$paymentId) {
+        if (!$payment_id) {
             // Handle error: Payment ID not provided
             return response('Payment ID missing', 400);
         }
 
         // Get the payment
-        $payment = Mollie::api()->payments->get($paymentId);
+        $payment = Mollie::api()->payments->get($payment_id);
 
         // Update the order status
         $order = Order::find($payment->metadata->order_id);

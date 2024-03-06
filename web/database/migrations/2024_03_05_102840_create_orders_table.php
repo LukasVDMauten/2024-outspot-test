@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->decimal('amount');
             $table->string('status')->default('pending');
+            $table->string('mollie_payment_id')->nullable();
             $table->timestamps();
         });
     }
